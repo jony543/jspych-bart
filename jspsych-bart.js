@@ -1,7 +1,6 @@
 var settings = {
 	baseSizeInPx: 40,
 	pumpValue: 0.05,
-	nTrials: 3,
 	feedbackDisplayDuration: 1000, // ms
 	maxPumps: [
 		1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,12,12,12,12,12,12	
@@ -39,7 +38,7 @@ function getSingleTrialTimeline(maxPump) {
 			{
 				type: 'html-keyboard-response',		    
 			    stimulus: function() {
-			    	var html = "<p>Baloon value: " + jsPsych.timelineVariable('value', true).toFixed(2) + "$</p>";
+			    	var html = "<p>ערכו של בלון זה: " + jsPsych.timelineVariable('value', true).toFixed(2) + "</p>";
 	                html +="<img id='baloon' src='resources/redBalloon.png' style='height: " + jsPsych.timelineVariable('height', true) +"px;'>";
 	                return html;
 	            }, 
@@ -80,9 +79,9 @@ function getSingleTrialTimeline(maxPump) {
 			        // and check which key was pressed
 			        var data = jsPsych.data.get().last(1).values()[0];
 			        if(!!data.success){
-			            return 'You gained ' + data.valueGained.toFixed(2) + '$<br>total: ' + data.total.toFixed(2) + '$';
+			            return 'עבור בלון זה הרווחת ' + data.valueGained.toFixed(2);
 			        } else {
-			            return 'You gained nothing<br>total: ' + total.toFixed(2) + '$';
+			            return 'אופס, הפסדת את הבלון הזה';
 			        }			    	
 			    }, 
 			    on_finish: function(data) {
@@ -101,7 +100,7 @@ for (var i = 0; i < settings.maxPumps.length; i++) {
 
 timeline.push({
 	type: 'html-keyboard-response',
-	stimulus: 'Total: ' + total + '$<br>Press any key to finish the task :)',
+	stimulus: 'כל הכבוד, בסך הכל צברת ' + total.toFixed(2),
 	trial_duration: settings.feedbackDisplayDuration,
 	on_finish: function(data) {
     	data.trialType = 'task-end';
