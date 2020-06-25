@@ -94,8 +94,10 @@ function getSingleTrialTimeline(maxPump) {
 	}
 }
 
-for (var i = 0; i < settings.maxPumps.length; i++) {
-	timeline.push(getSingleTrialTimeline(settings.maxPumps[i]));
+var shuffeledMaxPumps = jsPsych.randomization.factorial(settings.maxPumps, 1, false)
+
+for (var i = 0; i < shuffeledMaxPumps.length; i++) {
+	timeline.push(getSingleTrialTimeline(shuffeledMaxPumps[i]));
 }
 
 timeline.push({
