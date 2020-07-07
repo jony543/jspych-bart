@@ -2,9 +2,8 @@ var settings = {
 	baseSizeInPx: 40,
 	pumpValue: 0.05,
 	feedbackDisplayDuration: 1000, // ms
-	maxPumps: [
-		1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,12,12,12,12,12,12	
-	]
+	maxPumps: 
+		[ 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,12,12,12,12,12,12 ]
 };
 var timeline = [];
 
@@ -12,7 +11,7 @@ var total = 0;
 
 var instructions = {
     type: 'image-keyboard-response',
-    stimulus: 'resources/ins.png',
+    stimulus: 'jspsych-bart/resources/ins.png',
     stimulus_height: 400,
     choices: [ 32 ], // space  
     on_finish: function(data) {
@@ -30,7 +29,7 @@ function getSingleTrialTimeline(maxPump) {
 	
 	for (var i = 0; i < maxPump; i++) {
 		variables[i].height = (i + 1) * settings.baseSizeInPx;
-		variables[i].value = (i + 1) * settings.pumpValue;
+		variables[i].value = i * settings.pumpValue;
 	}
 
 	var pumpingTimeline = {
@@ -39,7 +38,7 @@ function getSingleTrialTimeline(maxPump) {
 				type: 'html-keyboard-response',		    
 			    stimulus: function() {
 			    	var html = "<p>ערכו של בלון זה: " + jsPsych.timelineVariable('value', true).toFixed(2) + "</p>";
-	                html +="<img id='baloon' src='resources/redBalloon.png' style='height: " + jsPsych.timelineVariable('height', true) +"px;'>";
+	                html +="<img id='baloon' src='jspsych-bart/resources/redBalloon.png' style='height: " + jsPsych.timelineVariable('height', true) +"px;'>";
 	                return html;
 	            }, 
 			    choices: [ 32, 13 ], // space, enter   
@@ -71,7 +70,7 @@ function getSingleTrialTimeline(maxPump) {
 			        if(!!data.success){
 			            return undefined;
 			        } else {
-			            return 'resources/bang.mp3';
+			            return 'jspsych-bart/resources/bang.mp3';
 			        }
 				},
 			    prompt: function () {
@@ -94,7 +93,7 @@ function getSingleTrialTimeline(maxPump) {
 	}
 }
 
-var shuffeledMaxPumps = jsPsych.randomization.factorial(settings.maxPumps, 1, false)
+var shuffeledMaxPumps = jsPsych.randomization.repeat(settings.maxPumps, 1, false)
 
 for (var i = 0; i < shuffeledMaxPumps.length; i++) {
 	timeline.push(getSingleTrialTimeline(shuffeledMaxPumps[i]));
@@ -102,8 +101,9 @@ for (var i = 0; i < shuffeledMaxPumps.length; i++) {
 
 timeline.push({
 	type: 'html-keyboard-response',
-	stimulus: 'כל הכבוד, בסך הכל צברת ' + total.toFixed(2),
-	trial_duration: settings.feedbackDisplayDuration,
+	stimulus: function () { return 'כל הכבוד, בסך הכל צברת ' + total.toFixed(2) },
+	trial_duration: 3 * settings.feedbackDisplayDuration, // extending the time of the last message
+	choices: jsPsych.NO_KEYS,
 	on_finish: function(data) {
     	data.trialType = 'task-end';
     },
@@ -118,15 +118,20 @@ if (!window.jatos) {
 	}
 }
 
+// for debug
+if (!window.jatosComponentsRandomizer) {
+	jatosComponentsRandomizer = jatos;
+}
+
 jatos.onLoad(function() {
 	jsPsych.init( {
 	    timeline: timeline,
-	    preload_images: [ 'resources/ins.png', 'resources/redBalloon.png' ],
-        preload_audio: [ 'resources/bang.mp3' ],
+	    preload_images: [ 'jspsych-bart/resources/ins.png', 'jspsych-bart/resources/redBalloon.png' ],
+        preload_audio: [ 'jspsych-bart/resources/bang.mp3' ],
 	    on_finish: function() {
 	      var resultJson = jsPsych.data.get().json();
 	      console.log(resultJson);
-	      jatos.submitResultData(resultJson, jatos.startNextComponent);
+	      jatos.submitResultData(resultJson, jatosComponentsRandomizer.startNextComponent);
 	    }
 	  });  
 });
