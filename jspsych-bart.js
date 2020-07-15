@@ -1,17 +1,20 @@
 var settings = {
-	baseSizeInPx: 40,
+	minSizeInPct: 10,
+	maxSizeInPct: 90,
 	pumpValue: 0.05,
-	feedbackDisplayDuration: 1000, // ms
+	feedbackDisplayDuration: 1500, // ms	
 	maxPumps: 
 		[ 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,12,12,12,12,12,12 ]
 };
+settings.biggestPump = Math.max.apply(Math, settings.maxPumps);
+
 var timeline = [];
 
 var total = 0;
 
 var instructions = {
     type: 'image-keyboard-response',
-    stimulus: 'jspsych-bart/resources/ins.png',
+    stimulus: 'resources/ins.png',
     stimulus_height: 400,
     choices: [ 32 ], // space  
     on_finish: function(data) {
@@ -23,12 +26,14 @@ timeline.push(instructions);
 
 function getSingleTrialTimeline(maxPump) {
 	var variables = jsPsych.randomization.repeat({
-		height: 1,		
+		size: 1,		
 		value: 1,
 	}, maxPump, false);
+
+	var sizeIncremeant = (settings.maxSizeInPct - settings.minSizeInPct) / (settings.biggestPump - 1);
 	
 	for (var i = 0; i < maxPump; i++) {
-		variables[i].height = (i + 1) * settings.baseSizeInPx;
+		variables[i].size = settings.minSizeInPct + (i * sizeIncremeant);
 		variables[i].value = i * settings.pumpValue;
 	}
 
@@ -37,8 +42,10 @@ function getSingleTrialTimeline(maxPump) {
 			{
 				type: 'html-keyboard-response',		    
 			    stimulus: function() {
-			    	var html = "<p>ערכו של בלון זה: " + jsPsych.timelineVariable('value', true).toFixed(2) + "</p>";
-	                html +="<img id='baloon' src='jspsych-bart/resources/redBalloon.png' style='height: " + jsPsych.timelineVariable('height', true) +"px;'>";
+			    	var html = '<div style="position: absolute; top: 10%; left: 10%; width: 80%; height: 70%;">';
+					html += "<p>ערכו של בלון זה: " + jsPsych.timelineVariable('value', true).toFixed(2) + "</p>";
+	                html +="<img id='baloon' src='resources/redBalloon.png' style='width: auto; height: " + jsPsych.timelineVariable('size', true) +"%;'>";
+					html += '</div>';
 	                return html;
 	            }, 
 			    choices: [ 32, 13 ], // space, enter   
@@ -70,7 +77,7 @@ function getSingleTrialTimeline(maxPump) {
 			        if(!!data.success){
 			            return undefined;
 			        } else {
-			            return 'jspsych-bart/resources/bang.mp3';
+			            return 'resources/bang.mp3';
 			        }
 				},
 			    prompt: function () {
@@ -79,8 +86,12 @@ function getSingleTrialTimeline(maxPump) {
 			        var data = jsPsych.data.get().last(1).values()[0];
 			        if(!!data.success){
 			            return 'עבור בלון זה הרווחת ' + data.valueGained.toFixed(2);
-			        } else {
-			            return 'אופס, הפסדת את הבלון הזה';
+			        } else {		
+						var html = '<div style="position: absolute; top: 10%; left: 10%; width: 80%; height: 70%;">';
+			            html += '<p>אופס, הפסדת את הבלון הזה</p>';
+						html += '<img src="resources/balloon_explosion.png" style="width: 50%; height: auto"/>'
+						html += '</div>';
+						return html;
 			        }			    	
 			    }, 
 			    on_finish: function(data) {
@@ -101,8 +112,12 @@ for (var i = 0; i < shuffeledMaxPumps.length; i++) {
 
 timeline.push({
 	type: 'html-keyboard-response',
-	stimulus: function () { return 'כל הכבוד, בסך הכל צברת ' + total.toFixed(2) },
-	trial_duration: 3 * settings.feedbackDisplayDuration, // extending the time of the last message
+	stimulus: function () { 
+		var html = '<p>חלק זה בניסוי הסתיים.</p>';
+		html += '<p>כל הכבוד, בסך הכל צברת ' + total.toFixed(2) + '</p>';
+		return html;
+	},
+	trial_duration: 5000,
 	choices: jsPsych.NO_KEYS,
 	on_finish: function(data) {
     	data.trialType = 'task-end';
@@ -126,8 +141,8 @@ if (!window.jatosComponentsRandomizer) {
 jatos.onLoad(function() {
 	jsPsych.init( {
 	    timeline: timeline,
-	    preload_images: [ 'jspsych-bart/resources/ins.png', 'jspsych-bart/resources/redBalloon.png' ],
-        preload_audio: [ 'jspsych-bart/resources/bang.mp3' ],
+	    preload_images: [ 'resources/ins.png', 'resources/redBalloon.png', 'resources/balloon_explosion.png' ],
+        preload_audio: [ 'resources/bang.mp3' ],
 	    on_finish: function() {
 	      var resultJson = jsPsych.data.get().json();
 	      console.log(resultJson);
