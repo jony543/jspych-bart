@@ -1,19 +1,25 @@
 var settings = {
-	baseSizeInPx: 40,
+	minSizeInPct: 10,
+	maxSizeInPct: 90,
 	pumpValue: 0.05,
-	nTrials: 3,
-	feedbackDisplayDuration: 1000, // ms
-	maxPumps: [
-		1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,12,12,12,12,12,12	
-	]
+	feedbackDisplayDuration: 1500, // ms
+	nTrials: 30,	
+	maxPumpsDistribution: [ 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24 ],
+	maxPumps: []
 };
+
+// sampling max pumps for trials in the study
+settings.maxPumps = jsPsych.randomization.sampleWithReplacement(settings.maxPumpsDistribution, settings.nTrials);
+
+settings.biggestPump = Math.max.apply(Math, settings.maxPumps);
+
 var timeline = [];
 
 var total = 0;
 
 var instructions = {
     type: 'image-keyboard-response',
-    stimulus: 'resources/ins.png',
+    stimulus: 'jspsych-bart/resources/ins.png',
     stimulus_height: 400,
     choices: [ 32 ], // space  
     on_finish: function(data) {
@@ -25,13 +31,15 @@ timeline.push(instructions);
 
 function getSingleTrialTimeline(maxPump) {
 	var variables = jsPsych.randomization.repeat({
-		height: 1,		
+		size: 1,		
 		value: 1,
 	}, maxPump, false);
+
+	var sizeIncremeant = (settings.maxSizeInPct - settings.minSizeInPct) / (settings.biggestPump - 1);
 	
 	for (var i = 0; i < maxPump; i++) {
-		variables[i].height = (i + 1) * settings.baseSizeInPx;
-		variables[i].value = (i + 1) * settings.pumpValue;
+		variables[i].size = settings.minSizeInPct + (i * sizeIncremeant);
+		variables[i].value = i * settings.pumpValue;
 	}
 
 	var pumpingTimeline = {
@@ -39,8 +47,10 @@ function getSingleTrialTimeline(maxPump) {
 			{
 				type: 'html-keyboard-response',		    
 			    stimulus: function() {
-			    	var html = "<p>Baloon value: " + jsPsych.timelineVariable('value', true).toFixed(2) + "$</p>";
-	                html +="<img id='baloon' src='resources/redBalloon.png' style='height: " + jsPsych.timelineVariable('height', true) +"px;'>";
+			    	var html = '<div style="position: absolute; top: 10%; left: 10%; width: 80%; height: 70%;">';
+					html += "<p>ערכו של בלון זה: " + jsPsych.timelineVariable('value', true).toFixed(2) + "</p>";
+	                html +="<img id='baloon' src='jspsych-bart/resources/redBalloon.png' style='width: auto; height: " + jsPsych.timelineVariable('size', true) +"%;'>";
+					html += '</div>';
 	                return html;
 	            }, 
 			    choices: [ 32, 13 ], // space, enter   
@@ -72,7 +82,7 @@ function getSingleTrialTimeline(maxPump) {
 			        if(!!data.success){
 			            return undefined;
 			        } else {
-			            return 'resources/bang.mp3';
+			            return 'jspsych-bart/resources/bang.mp3';
 			        }
 				},
 			    prompt: function () {
@@ -80,9 +90,13 @@ function getSingleTrialTimeline(maxPump) {
 			        // and check which key was pressed
 			        var data = jsPsych.data.get().last(1).values()[0];
 			        if(!!data.success){
-			            return 'You gained ' + data.valueGained.toFixed(2) + '$<br>total: ' + data.total.toFixed(2) + '$';
-			        } else {
-			            return 'You gained nothing<br>total: ' + total.toFixed(2) + '$';
+			            return 'עבור בלון זה הרווחת ' + data.valueGained.toFixed(2);
+			        } else {		
+						var html = '<div style="position: absolute; top: 10%; left: 10%; width: 80%; height: 70%;">';
+			            html += '<p>אופס, הפסדת את הבלון הזה</p>';
+						html += '<img src="jspsych-bart/resources/balloon_explosion.png" style="width: 50%; height: auto"/>'
+						html += '</div>';
+						return html;
 			        }			    	
 			    }, 
 			    on_finish: function(data) {
@@ -95,14 +109,21 @@ function getSingleTrialTimeline(maxPump) {
 	}
 }
 
-for (var i = 0; i < settings.maxPumps.length; i++) {
-	timeline.push(getSingleTrialTimeline(settings.maxPumps[i]));
+var shuffeledMaxPumps = jsPsych.randomization.repeat(settings.maxPumps, 1, false)
+
+for (var i = 0; i < shuffeledMaxPumps.length; i++) {
+	timeline.push(getSingleTrialTimeline(shuffeledMaxPumps[i]));
 }
 
 timeline.push({
 	type: 'html-keyboard-response',
-	stimulus: 'Total: ' + total + '$<br>Press any key to finish the task :)',
-	trial_duration: settings.feedbackDisplayDuration,
+	stimulus: function () { 
+		var html = '<p>חלק זה בניסוי הסתיים.</p>';
+		html += '<p>כל הכבוד, בסך הכל צברת ' + total.toFixed(2) + '</p>';
+		return html;
+	},
+	trial_duration: 5000,
+	choices: jsPsych.NO_KEYS,
 	on_finish: function(data) {
     	data.trialType = 'task-end';
     },
@@ -117,15 +138,20 @@ if (!window.jatos) {
 	}
 }
 
+// for debug
+if (!window.jatosComponentsRandomizer) {
+	jatosComponentsRandomizer = jatos;
+}
+
 jatos.onLoad(function() {
 	jsPsych.init( {
 	    timeline: timeline,
-	    preload_images: [ 'resources/ins.png', 'resources/redBalloon.png' ],
-        preload_audio: [ 'resources/bang.mp3' ],
+	    preload_images: [ 'jspsych-bart/resources/ins.png', 'jspsych-bart/resources/redBalloon.png', 'jspsych-bart/resources/balloon_explosion.png' ],
+        preload_audio: [ 'jspsych-bart/resources/bang.mp3' ],
 	    on_finish: function() {
 	      var resultJson = jsPsych.data.get().json();
 	      console.log(resultJson);
-	      jatos.submitResultData(resultJson, jatos.startNextComponent);
+	      jatos.submitResultData(resultJson, jatosComponentsRandomizer.startNextComponent);
 	    }
 	  });  
 });
